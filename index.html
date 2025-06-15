@@ -1,57 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickShop - Convenience Store</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuickShop - Convenience Store</title>
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="logo">
-            <h1>QuickShop</h1>
-            <p>Your Neighborhood Store</p>
-        </div>
-        <div class="cart-icon" id="cartBtn">
-            <i class="fas fa-shopping-cart"></i>
-            <span id="cartCount">0</span>
-        </div>
-    </header>
-
-    <!-- Products Grid -->
-    <main class="products-grid" id="products">
-        <!-- Products load here dynamically -->
-    </main>
-
-    <!-- Shopping Cart Sidebar -->
-    <div class="cart-sidebar" id="cartSidebar">
-        <div class="cart-header">
-            <h2>Your Cart</h2>
-            <button id="closeCart"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="cart-items" id="cartItems">
-            <!-- Cart items appear here -->
-        </div>
-        <div class="cart-total">
-            <h3>Total: <span id="cartTotal">$0.00</span></h3>
-            <button id="checkoutBtn">Checkout</button>
-        </div>
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <h1>QuickShop</h1>
+      <p>Your Neighborhood Store</p>
     </div>
-
-    <!-- Checkout Modal -->
-    <div class="checkout-modal" id="checkoutModal">
-        <div class="modal-content">
-            <h2>Complete Your Order</h2>
-            <form id="checkoutForm">
-                <input type="text" placeholder="Name" required>
-                <input type="email" placeholder="Email" required>
-                <button type="submit">Pay Now</button>
-            </form>
-        </div>
+    <div class="cart-icon" id="cartBtn">
+      <i class="fas fa-shopping-cart"></i>
+      <span id="cartCount">0</span>
     </div>
+  </header>
 
-    <script src="js/main.js"></script>
+  <!-- Products Grid -->
+  <main class="products-grid" id="products">
+    <!-- Products load here dynamically -->
+  </main>
+
+  <!-- Shopping Cart Sidebar -->
+  <div class="cart-sidebar" id="cartSidebar">
+    <div class="cart-header">
+      <h2>Your Cart</h2>
+      <button id="closeCart"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-total">
+      <h3>Total: <span id="cartTotal">₹0.00</span></h3>
+      <button id="checkoutBtn">Checkout</button>
+    </div>
+  </div>
+
+  <!-- Checkout Modal -->
+  <div class="checkout-modal" id="checkoutModal">
+    <div class="modal-content">
+      <h2>Complete Your Order</h2>
+      <form id="checkoutForm">
+        <input type="text" id="userName" placeholder="Name" required />
+        <input type="email" id="userEmail" placeholder="Email" required />
+        <button type="submit">Pay Now</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="./main.js"></script>
 </body>
 </html>
