@@ -14,9 +14,9 @@
       <h1>QuickShop</h1>
       <p>Your Neighborhood Store</p>
     </div>
-    <div class="search-icon">
-      <input type="text" id="searchInput" placeholder="Search...">
-      <i class="fas fa-search" id="searchBtn"></i>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search products..." />
+      <i class="fas fa-search" id="searchIcon"></i>
     </div>
     <div class="cart-icon" id="cartBtn">
       <i class="fas fa-shopping-cart"></i>
@@ -25,9 +25,11 @@
   </header>
 
   <!-- Products Grid -->
-  <main class="products-grid" id="products"></main>
+  <main class="products-grid" id="products">
+    <!-- Products will be rendered here -->
+  </main>
 
-  <!-- Shopping Cart Sidebar -->
+  <!-- Cart Sidebar -->
   <div class="cart-sidebar" id="cartSidebar">
     <div class="cart-header">
       <h2>Your Cart</h2>
@@ -47,9 +49,7 @@
       <form id="checkoutForm">
         <input type="text" id="userName" placeholder="Name" required />
         <input type="email" id="userEmail" placeholder="Email" required />
-        <a id="upiLink" href="#" target="_blank">
-          <button type="button">Pay via UPI</button>
-        </a>
+        <button type="submit">Pay Now</button>
       </form>
     </div>
   </div>
