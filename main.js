@@ -72,7 +72,7 @@ document.getElementById('checkoutBtn').onclick = () => {
 document.getElementById('checkoutForm').onsubmit = (e) => {
   e.preventDefault();
   const total = getTotal();
-  const upiId = `upi://pay?pa=yourupi@bank&pn=QuickShop&am=${total}&cu=INR`;
+  const upiId = `upi://pay?pa=dinzd145@oksbi&pn=QuickShop&am=${total}&cu=INR`;
   document.getElementById('upiLink').href = upiId;
   alert('Click "Pay via UPI" to complete your payment.');
 };
