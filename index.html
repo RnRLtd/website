@@ -23,7 +23,18 @@
       <span id="cartCount">0</span>
     </div>
   </header>
-
+  <!-- Category Filter -->
+<div class="category-filter">
+  <label for="categorySelect">Filter by Category:</label>
+  <select id="categorySelect">
+    <option value="all">All</option>
+    <option value="Fruits">Fruits</option>
+    <option value="Snacks">Snacks</option>
+    <option value="Drinks">Drinks</option>
+    <option value="Groceries">Groceries</option>
+  </select>
+</div>
+  
   <!-- Products Grid -->
   <main class="products-grid" id="products">
     <!-- Products will be rendered here -->
@@ -54,6 +65,9 @@
     </div>
   </div>
 
+  <!-- Firebase + Main Script -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="./main.js"></script>
 </body>
 </html>
