@@ -1,27 +1,50 @@
-const products = [
-  { id: 1, name: "Milk", price: 30, img: "https://via.placeholder.com/150?text=Milk" },
-  { id: 2, name: "Bread", price: 25, img: "https://via.placeholder.com/150?text=Bread" },
-  { id: 3, name: "Butter", price: 50, img: "https://via.placeholder.com/150?text=Butter" },
-  { id: 4, name: "Juice", price: 40, img: "https://via.placeholder.com/150?text=Juice" }
-];
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyAwqSchQXSj-9q3PCOY0o8vrq7tKMuCYAs",
+  authDomain: "r-n-r-38dc8.firebaseapp.com",
+  projectId: "r-n-r-38dc8",
+  storageBucket: "r-n-r-38dc8.appspot.com",
+  messagingSenderId: "425320845657",
+  appId: "1:425320845657:web:8746d14fa263f924953c48",
+  measurementId: "G-N42FBSYVHF"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
+let products = [];
 let cart = [];
 
-function renderProducts(filter = "") {
+async function loadProducts() {
+  const snapshot = await db.collection("shopItems").orderBy("name").get();
+  products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  renderProducts();
+}
+
+function renderProducts() {
   const container = document.getElementById("products");
+  const searchValue = document.getElementById("searchInput").value.toLowerCase();
+  const selectedCategory = document.getElementById("categorySelect").value;
+
   container.innerHTML = "";
 
-  const filtered = products.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
+  const filtered = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchValue);
+    const matchesCategory =
+  selectedCategory === "all" ||
+  (p.category && p.category.toLowerCase() === selectedCategory.toLowerCase());
+
+    return matchesSearch && matchesCategory;
+  });
 
   filtered.forEach(product => {
     const card = document.createElement("div");
     card.className = "product-card";
     card.innerHTML = `
-      <img src="${product.img}" alt="${product.name}" class="product-img" />
+      <img src="${product.imageUrl}" alt="${product.name}" class="product-img" />
       <div class="product-info">
         <h3>${product.name}</h3>
         <p>₹${product.price}</p>
-        <button class="add-to-cart" onclick="addToCart(${product.id})">Add to Cart</button>
+        <button class="add-to-cart" onclick="addToCart('${product.id}')">Add to Cart</button>
       </div>
     `;
     container.appendChild(card);
@@ -30,8 +53,10 @@ function renderProducts(filter = "") {
 
 function addToCart(productId) {
   const product = products.find(p => p.id === productId);
-  cart.push(product);
-  updateCart();
+  if (product) {
+    cart.push(product);
+    updateCart();
+  }
 }
 
 function removeFromCart(index) {
@@ -48,7 +73,7 @@ function updateCart() {
   let total = 0;
 
   cart.forEach((item, index) => {
-    total += item.price;
+    total += parseFloat(item.price);
     const div = document.createElement("div");
     div.innerHTML = `
       ${item.name} - ₹${item.price}
@@ -75,7 +100,7 @@ document.getElementById("checkoutBtn").onclick = () => {
 
 document.getElementById("checkoutForm").addEventListener("submit", function(e) {
   e.preventDefault();
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
+  const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
   const name = document.getElementById("userName").value.trim();
   if (total === 0) {
     alert("Your cart is empty!");
@@ -85,9 +110,7 @@ document.getElementById("checkoutForm").addEventListener("submit", function(e) {
   window.location.href = upiUrl;
 });
 
-document.getElementById("searchIcon").onclick = () => {
-  const filter = document.getElementById("searchInput").value;
-  renderProducts(filter);
-};
+document.getElementById("searchIcon").onclick = renderProducts;
+document.getElementById("categorySelect").onchange = renderProducts;
 
-renderProducts();
+window.onload = loadProducts;
