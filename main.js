@@ -1,148 +1,90 @@
-// Sample Products Data
 const products = [
-  { id: 1, name: "Coca-Cola", price: 1.50, image: "coke.jpg" },
-  { id: 2, name: "Lays Chips", price: 2.00, image: "chips.jpg" },
-  { id: 3, name: "Milk", price: 3.50, image: "milk.jpg" },
+  { id: 1, name: 'Apple', price: 30, image: 'https://via.placeholder.com/200x150?text=Apple' },
+  { id: 2, name: 'Banana', price: 20, image: 'https://via.placeholder.com/200x150?text=Banana' },
+  { id: 3, name: 'Milk', price: 50, image: 'https://via.placeholder.com/200x150?text=Milk' },
 ];
 
 let cart = [];
 
-// Load Products
-function loadProducts() {
-  const productsGrid = document.getElementById('products');
-  productsGrid.innerHTML = '';
-
-  products.forEach(product => {
-    const productCard = document.createElement('div');
-    productCard.className = 'product-card';
-    productCard.innerHTML = `
-      <img src="images/${product.image}" alt="${product.name}" class="product-img">
-      <div class="product-info">
-        <h3>${product.name}</h3>
-        <p>₹${product.price.toFixed(2)}</p>
-        <button class="add-to-cart" data-id="${product.id}">Add to Cart</button>
-      </div>
-    `;
-    productsGrid.appendChild(productCard);
-  });
+function renderProducts(filter = '') {
+  const container = document.getElementById('products');
+  container.innerHTML = '';
+  products
+    .filter(p => p.name.toLowerCase().includes(filter.toLowerCase()))
+    .forEach(product => {
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      card.innerHTML = `
+        <img src="${product.image}" class="product-img" />
+        <div class="product-info">
+          <h3>${product.name}</h3>
+          <p>₹${product.price}</p>
+          <button class="add-to-cart" onclick="addToCart(${product.id})">Add to Cart</button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
 }
 
-// Add to Cart
-document.addEventListener('click', (e) => {
-  if (e.target.classList.contains('add-to-cart')) {
-    const productId = parseInt(e.target.dataset.id);
-    const product = products.find(p => p.id === productId);
+function addToCart(productId) {
+  const product = products.find(p => p.id === productId);
+  cart.push(product);
+  updateCartUI();
+}
 
-    const existingItem = cart.find(item => item.id === productId);
-    if (existingItem) {
-      existingItem.quantity++;
-    } else {
-      cart.push({ ...product, quantity: 1 });
-    }
+function removeFromCart(index) {
+  cart.splice(index, 1);
+  updateCartUI();
+}
 
-    updateCart();
-  }
-});
-
-// Update Cart UI
-function updateCart() {
-  const cartItems = document.getElementById('cartItems');
-  const cartTotal = document.getElementById('cartTotal');
-  const cartCount = document.getElementById('cartCount');
-
-  cartItems.innerHTML = '';
+function updateCartUI() {
+  document.getElementById('cartCount').innerText = cart.length;
+  const itemsContainer = document.getElementById('cartItems');
+  itemsContainer.innerHTML = '';
   let total = 0;
 
-  cart.forEach(item => {
-    const cartItem = document.createElement('div');
-    cartItem.className = 'cart-item';
-    cartItem.innerHTML = `
-      <div>
-        <h4>${item.name}</h4>
-        <p>₹${item.price.toFixed(2)} x ${item.quantity}</p>
-      </div>
-      <button class="remove-item" data-id="${item.id}"><i class="fas fa-trash"></i></button>
+  cart.forEach((item, index) => {
+    total += item.price;
+    const itemDiv = document.createElement('div');
+    itemDiv.innerHTML = `
+      <p>${item.name} - ₹${item.price}
+        <button onclick="removeFromCart(${index})" style="margin-left:10px;color:red;">Remove</button>
+      </p>
     `;
-    cartItems.appendChild(cartItem);
-    total += item.price * item.quantity;
+    itemsContainer.appendChild(itemDiv);
   });
 
-  cartTotal.textContent = `₹${total.toFixed(2)}`;
-  cartCount.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+  document.getElementById('cartTotal').innerText = `₹${total.toFixed(2)}`;
 }
 
-// Toggle Cart Sidebar
-document.getElementById('cartBtn').addEventListener('click', () => {
+document.getElementById('cartBtn').onclick = () => {
   document.getElementById('cartSidebar').classList.add('active');
-});
+};
 
-document.getElementById('closeCart').addEventListener('click', () => {
+document.getElementById('closeCart').onclick = () => {
   document.getElementById('cartSidebar').classList.remove('active');
-});
+};
 
-// Remove Item
-document.addEventListener('click', (e) => {
-  if (e.target.classList.contains('remove-item') || e.target.closest('.remove-item')) {
-    const productId = parseInt(e.target.dataset.id || e.target.closest('.remove-item').dataset.id);
-    cart = cart.filter(item => item.id !== productId);
-    updateCart();
-  }
-});
+document.getElementById('checkoutBtn').onclick = () => {
+  document.getElementById('checkoutModal').classList.add('show');
+};
 
-// Show Checkout Modal
-document.getElementById('checkoutBtn').addEventListener('click', () => {
-  if (cart.length === 0) return alert('Your cart is empty!');
-  document.getElementById('checkoutModal').style.display = 'flex';
-});
-
-// Close Modal
-document.addEventListener('click', (e) => {
-  if (e.target === document.getElementById('checkoutModal')) {
-    document.getElementById('checkoutModal').style.display = 'none';
-  }
-});
-
-// Submit Checkout Form and Redirect to UPI
-document.getElementById('checkoutForm').addEventListener('submit', (e) => {
+document.getElementById('checkoutForm').onsubmit = (e) => {
   e.preventDefault();
+  const total = getTotal();
+  const upiId = `upi://pay?pa=yourupi@bank&pn=QuickShop&am=${total}&cu=INR`;
+  document.getElementById('upiLink').href = upiId;
+  alert('Click "Pay via UPI" to complete your payment.');
+};
 
-  const name = document.getElementById('userName').value.trim();
-  const email = document.getElementById('userEmail').value.trim();
-  if (!name || !email) return alert("Please fill in all fields.");
-
-  if (cart.length === 0) return alert('Cart is empty');
-
-  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
-
-  // ✅ UPI Redirect
-  const upiID = "dinzd145@oksbi"; // Change this to your actual UPI ID
-  const upiURI = `upi://pay?pa=${upiID}&pn=${encodeURIComponent(name)}&am=${total}&cu=INR`;
-
-  if (confirm(`Pay ₹${total} using UPI app?`)) {
-    window.location.href = upiURI;
-  }
-
-  generateReceipt();
-  cart = [];
-  updateCart();
-  document.getElementById('checkoutModal').style.display = 'none';
-});
-
-// Generate Receipt (Log only)
-function generateReceipt() {
-  let receipt = `=== QuickShop Receipt ===\n`;
-  receipt += `Date: ${new Date().toLocaleString()}\n\n`;
-
-  cart.forEach(item => {
-    receipt += `${item.name} - ₹${item.price.toFixed(2)} x ${item.quantity}\n`;
-  });
-
-  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  receipt += `\nTotal: ₹${total.toFixed(2)}\n`;
-  receipt += `Thank you for shopping with us!\n`;
-
-  console.log(receipt); // Could be sent to email or saved
+function getTotal() {
+  return cart.reduce((sum, item) => sum + item.price, 0);
 }
 
-// Init
-loadProducts();
+document.getElementById('searchBtn').onclick = () => {
+  const query = document.getElementById('searchInput').value;
+  renderProducts(query);
+};
+
+// Initial render
+renderProducts();
