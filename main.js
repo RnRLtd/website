@@ -20,21 +20,14 @@ async function loadProducts() {
   renderProducts();
 }
 
-function renderProducts() {
+function renderProducts(filter = "", category = "all") {
   const container = document.getElementById("products");
-  const searchValue = document.getElementById("searchInput").value.toLowerCase();
-  const selectedCategory = document.getElementById("categorySelect").value;
-
   container.innerHTML = "";
-
-  const filtered = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchValue);
-    const matchesCategory =
-  selectedCategory === "all" ||
-  (p.category && p.category.toLowerCase() === selectedCategory.toLowerCase());
-
-    return matchesSearch && matchesCategory;
-  });
+  
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(filter.toLowerCase()) &&
+    (category === "all" || p.category === category)
+  );
 
   filtered.forEach(product => {
     const card = document.createElement("div");
@@ -47,6 +40,11 @@ function renderProducts() {
         <button class="add-to-cart" onclick="addToCart('${product.id}')">Add to Cart</button>
       </div>
     `;
+    card.addEventListener("click", (e) => {
+      if (!e.target.classList.contains("add-to-cart")) {
+        showProductModal(product.name, product.description, product.price);
+      }
+    });
     container.appendChild(card);
   });
 }
@@ -86,6 +84,19 @@ function updateCart() {
   cartTotal.textContent = `₹${total.toFixed(2)}`;
 }
 
+// === Modal Show Function ===
+function showProductModal(name, description, price=0) {
+  document.getElementById("modalProductName").textContent = name;
+  document.getElementById("modalProductDesc").textContent = description || "No description available.";
+  document.getElementById("modalProductPrice").textContent = `₹${price}`;
+  document.getElementById("productModal").style.display = "flex";
+}
+
+// === Modal Close Handler ===
+document.getElementById("closeProductModal").onclick = () => {
+  document.getElementById("productModal").style.display = "none";
+};
+
 document.getElementById("cartBtn").onclick = () => {
   document.getElementById("cartSidebar").classList.add("active");
 };
@@ -97,6 +108,11 @@ document.getElementById("closeCart").onclick = () => {
 document.getElementById("checkoutBtn").onclick = () => {
   document.getElementById("checkoutModal").style.display = "flex";
 };
+
+document.getElementById("closeCheckoutModal").onclick = () => {
+  document.getElementById("checkoutModal").style.display = "none";
+};
+
 
 document.getElementById("checkoutForm").addEventListener("submit", function(e) {
   e.preventDefault();
@@ -110,7 +126,16 @@ document.getElementById("checkoutForm").addEventListener("submit", function(e) {
   window.location.href = upiUrl;
 });
 
-document.getElementById("searchIcon").onclick = renderProducts;
-document.getElementById("categorySelect").onchange = renderProducts;
+document.getElementById("searchIcon").onclick = () => {
+  const filter = document.getElementById("searchInput").value;
+  const category = document.getElementById("categorySelect").value;
+  renderProducts(filter, category);
+};
+
+document.getElementById("categorySelect").onchange = () => {
+  const filter = document.getElementById("searchInput").value;
+  const category = document.getElementById("categorySelect").value;
+  renderProducts(filter, category);
+};
 
 window.onload = loadProducts;
