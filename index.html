@@ -10,19 +10,26 @@
 <body>
   <!-- Header -->
   <header>
-    <div class="logo">
-      <h1>QuickShop</h1>
-      <p>Your Neighborhood Store</p>
-    </div>
-    <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Search products..." />
-      <i class="fas fa-search" id="searchIcon"></i>
+  <div class="logo">
+    <h1>QuickShop</h1>
+    <p>Your Neighborhood Store</p>
+  </div>
+  
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search products..." />
+    <i class="fas fa-search" id="searchIcon"></i>
+  </div>
+  
+  <div class="header-icons">
+    <div class="account-icon">
+      <i class="fas fa-user-circle"></i>
     </div>
     <div class="cart-icon" id="cartBtn">
       <i class="fas fa-shopping-cart"></i>
       <span id="cartCount">0</span>
     </div>
-  </header>
+  </div>
+</header>
   <!-- Category Filter -->
 <div class="category-filter">
   <label for="categorySelect">Filter by Category:</label>
@@ -34,7 +41,15 @@
     <option value="Groceries">Groceries</option>
   </select>
 </div>
-  
+<!-- Product Descriptions -->
+<div id="productModal" class="modal-overlay">
+  <div class="modal-box">
+    <button class="close-btn" id="closeProductModal">&times;</button>
+    <h3 id="modalProductName"></h3>
+    <p id="modalProductDesc"></p>
+    <p class="modal-price" id="modalProductPrice"></p>
+  </div>
+</div>  
   <!-- Products Grid -->
   <main class="products-grid" id="products">
     <!-- Products will be rendered here -->
@@ -56,6 +71,9 @@
   <!-- Checkout Modal -->
   <div class="checkout-modal" id="checkoutModal">
     <div class="modal-content">
+      <div class="checkout-header">
+        <button class="close-checkout" id="closeCheckoutModal">&times;</button>
+      </div>     
       <h2>Complete Your Order</h2>
       <form id="checkoutForm">
         <input type="text" id="userName" placeholder="Name" required />
