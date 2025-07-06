@@ -19,7 +19,7 @@ let products = [];
 let cart = [];
 let currentUser = null;
 
-// DOM elements
+// DOM elements (add profile-related elements)
 const productsContainer = document.getElementById("products");
 const cartItemsContainer = document.getElementById("cartItems");
 const cartCountElement = document.getElementById("cartCount");
@@ -45,190 +45,227 @@ const modalProductName = document.getElementById("modalProductName");
 const modalProductDesc = document.getElementById("modalProductDesc");
 const modalProductPrice = document.getElementById("modalProductPrice");
 
+// Profile-related DOM elements (only available on profile.html)
+const profileForm = document.getElementById("profileForm");
+const passwordForm = document.getElementById("passwordForm");
+const changePasswordLink = document.getElementById("changePasswordLink");
+const passwordModal = document.getElementById("passwordModal");
+const closePasswordModal = document.getElementById("closePasswordModal");
+const successMessage = document.getElementById("successMessage");
+const errorMessage = document.getElementById("errorMessage");
+const passwordError = document.getElementById("passwordError");
+const passwordSuccess = document.getElementById("passwordSuccess");
+
 // Initialize the application
 function init() {
   setupEventListeners();
   checkAuthState();
+  
+  // Initialize profile page if we're on profile.html
+  if (window.location.pathname.includes('profile.html')) {
+    initializeProfilePage();
+  }
 }
 
 function checkAuthState() {
   auth.onAuthStateChanged(user => {
     if (user) {
       currentUser = user;
-      userEmailElement.textContent = user.email;
-      logoutBtn.style.display = "block";
+      if (userEmailElement) userEmailElement.textContent = user.email;
+      if (logoutBtn) logoutBtn.style.display = "block";
+      
+      // Load user data if on profile page
+      if (window.location.pathname.includes('profile.html')) {
+        loadUserData(user);
+      }
     } else {
       currentUser = null;
-      userEmailElement.textContent = "Guest user";
-      logoutBtn.style.display = "none";
-    }
-    loadProducts();
-  });
-}
-
-async function loadProducts() {
-  try {
-    const snapshot = await db.collection("shopItems").orderBy("name").get();
-    products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderProducts();
-  } catch (error) {
-    console.error("Error loading products:", error);
-  }
-}
-
-function renderProducts(filter = "", category = "all") {
-  productsContainer.innerHTML = "";
-  const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(filter.toLowerCase()) &&
-    (category === "all" || p.category === category)
-  );
-
-  filtered.forEach(product => {
-    const card = document.createElement("div");
-    card.className = "product-card";
-    card.innerHTML = `
-      <img src="${product.imageUrl}" alt="${product.name}" class="product-img" />
-      <div class="product-info">
-        <h3>${product.name}</h3>
-        <p>₹${product.price}</p>
-        <button class="add-to-cart" data-id="${product.id}">Add to Cart</button>
-      </div>
-    `;
-    productsContainer.appendChild(card);
-  });
-}
-
-function addToCart(productId) {
-  const product = products.find(p => p.id === productId);
-  if (product) {
-    cart.push(product);
-    updateCart();
-  }
-}
-
-function showProductModal(name, description, price = 0) {
-  modalProductName.textContent = name;
-  modalProductDesc.textContent = description || "No description available.";
-  modalProductPrice.textContent = `₹${price}`;
-  productModal.style.display = "flex";
-}
-
-function removeFromCart(index) {
-  cart.splice(index, 1);
-  updateCart();
-}
-
-function updateCart() {
-  cartItemsContainer.innerHTML = "";
-  let total = 0;
-  cart.forEach((item, index) => {
-    total += parseFloat(item.price);
-    const div = document.createElement("div");
-    div.innerHTML = `
-      ${item.name} - ₹${item.price}
-      <button class="remove-btn" onclick="removeFromCart(${index})">Remove</button>
-    `;
-    cartItemsContainer.appendChild(div);
-  });
-  cartCountElement.textContent = cart.length;
-  cartTotalElement.textContent = `₹${total.toFixed(2)}`;
-}
-
-function setupEventListeners() {
-  accountBtn.addEventListener("click", () => {
-    const user = auth.currentUser;
-    if (!user) {
-      window.location.href = "auth.html";
-    } else {
-      accountModal.style.display = "flex";
-    }
-  });
-
-  closeAccountModal.addEventListener("click", () => {
-    accountModal.style.display = "none";
-  });
-
-  logoutBtn.addEventListener("click", () => {
-    auth.signOut().then(() => {
-      accountModal.style.display = "none";
-      window.location.href = "auth.html";
-    });
-  });
-
-  cartBtn.addEventListener("click", () => {
-    cartSidebar.classList.add("active");
-  });
-
-  closeCartBtn.addEventListener("click", () => {
-    cartSidebar.classList.remove("active");
-  });
-
-  checkoutBtn.addEventListener("click", () => {
-    checkoutModal.style.display = "flex";
-  });
-
-  closeCheckoutModal.addEventListener("click", () => {
-    checkoutModal.style.display = "none";
-  });
-
-  closeProductModal.addEventListener("click", () => {
-    productModal.style.display = "none";
-  });
-
-  checkoutForm.addEventListener("submit", function(e) {
-    e.preventDefault();
-    const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
-    const name = document.getElementById("userName").value.trim();
-    const email = document.getElementById("userEmailInput").value.trim();
-
-    if (total === 0) {
-      alert("Your cart is empty!");
-      return;
-    }
-
-    const upiUrl = `upi://pay?pa=dinzd145@oksbi&pn=${encodeURIComponent(name)}&am=${total}&cu=INR`;
-    window.location.href = upiUrl;
-
-    cart = [];
-    updateCart();
-    checkoutModal.style.display = "none";
-  });
-
-  searchIcon.addEventListener("click", () => {
-    const filter = searchInput.value;
-    const category = categorySelect.value;
-    renderProducts(filter, category);
-  });
-
-  categorySelect.addEventListener("change", () => {
-    const filter = searchInput.value;
-    const category = categorySelect.value;
-    renderProducts(filter, category);
-  });
-
-  window.addEventListener("click", (event) => {
-    if (event.target.classList.contains("modal-overlay")) {
-      event.target.style.display = "none";
-    }
-  });
-
-  document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("add-to-cart")) {
-      const productId = e.target.getAttribute("data-id");
-      addToCart(productId);
-    }
-
-    if (e.target.closest(".product-card") && !e.target.classList.contains("add-to-cart")) {
-      const card = e.target.closest(".product-card");
-      const productId = card.querySelector(".add-to-cart").getAttribute("data-id");
-      const product = products.find(p => p.id === productId);
-      if (product) {
-        showProductModal(product.name, product.description, product.price);
+      if (userEmailElement) userEmailElement.textContent = "Guest user";
+      if (logoutBtn) logoutBtn.style.display = "none";
+      
+      // Redirect to auth if on profile page
+      if (window.location.pathname.includes('profile.html')) {
+        window.location.href = 'auth.html';
       }
     }
+    
+    if (!window.location.pathname.includes('profile.html')) {
+      loadProducts();
+    }
   });
 }
 
+// Profile Page Functions
+function initializeProfilePage() {
+  if (profileForm) {
+    profileForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      saveProfileData();
+    });
+  }
+  
+  if (changePasswordLink) {
+    changePasswordLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (passwordModal) passwordModal.style.display = 'flex';
+    });
+  }
+  
+  if (closePasswordModal) {
+    closePasswordModal.addEventListener('click', () => {
+      if (passwordModal) passwordModal.style.display = 'none';
+    });
+  }
+  
+  if (passwordForm) {
+    passwordForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      changePassword();
+    });
+  }
+}
+
+function loadUserData(user) {
+  db.collection('users').doc(user.uid).get()
+    .then(doc => {
+      if (doc.exists) {
+        const userData = doc.data();
+        // Fill form with user data
+        document.getElementById('firstName').value = userData.firstName || '';
+        document.getElementById('lastName').value = userData.lastName || '';
+        document.getElementById('email').value = user.email;
+        document.getElementById('phone').value = userData.phone || '';
+        document.getElementById('address').value = userData.address || '';
+        document.getElementById('city').value = userData.city || '';
+        document.getElementById('state').value = userData.state || '';
+        document.getElementById('zipCode').value = userData.zipCode || '';
+        
+        if (userData.photoURL && document.getElementById('profilePicture')) {
+          document.getElementById('profilePicture').src = userData.photoURL;
+        }
+      } else {
+        // Create empty user document if it doesn't exist
+        db.collection('users').doc(user.uid).set({
+          firstName: '',
+          lastName: '',
+          phone: '',
+          address: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error loading user data:', error);
+      showMessage('Error loading profile data', 'error');
+    });
+}
+
+function saveProfileData() {
+  if (!currentUser || !profileForm) return;
+
+  const formData = {
+    firstName: document.getElementById('firstName').value.trim(),
+    lastName: document.getElementById('lastName').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    address: document.getElementById('address').value.trim(),
+    city: document.getElementById('city').value.trim(),
+    state: document.getElementById('state').value.trim(),
+    zipCode: document.getElementById('zipCode').value.trim()
+  };
+
+  // Validate form
+  if (!formData.firstName || !formData.lastName || !formData.email) {
+    showMessage('Please fill in all required fields', 'error');
+    return;
+  }
+
+  // Update email if changed
+  const updates = [];
+  if (formData.email !== currentUser.email) {
+    updates.push(currentUser.updateEmail(formData.email));
+  }
+
+  // Update Firestore
+  updates.push(
+    db.collection('users').doc(currentUser.uid).set({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      phone: formData.phone,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      zipCode: formData.zipCode,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true })
+  );
+
+  Promise.all(updates)
+    .then(() => showMessage('Profile updated successfully!', 'success'))
+    .catch(error => showMessage('Error updating profile: ' + error.message, 'error'));
+}
+
+function changePassword() {
+  if (!currentUser || !passwordForm) return;
+
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newPassword = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+
+  // Validate passwords
+  if (newPassword !== confirmPassword) {
+    showMessage('New passwords do not match', 'error', true);
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    showMessage('Password must be at least 6 characters', 'error', true);
+    return;
+  }
+
+  // Reauthenticate and change password
+  const credential = firebase.auth.EmailAuthProvider.credential(
+    currentUser.email, 
+    currentPassword
+  );
+
+  currentUser.reauthenticateWithCredential(credential)
+    .then(() => currentUser.updatePassword(newPassword))
+    .then(() => {
+      showMessage('Password changed successfully!', 'success', true);
+      passwordForm.reset();
+      setTimeout(() => {
+        if (passwordModal) passwordModal.style.display = 'none';
+      }, 2000);
+    })
+    .catch(error => showMessage('Error changing password: ' + error.message, 'error', true));
+}
+
+// Shared utility functions
+function showMessage(message, type, isPassword = false) {
+  let element;
+  if (isPassword) {
+    element = type === 'success' ? passwordSuccess : passwordError;
+  } else {
+    element = type === 'success' ? successMessage : errorMessage;
+  }
+
+  if (element) {
+    element.textContent = message;
+    element.style.display = 'block';
+    setTimeout(() => element.style.display = 'none', 3000);
+  } else {
+    alert(message); // Fallback if message elements don't exist
+  }
+}
+
+// Rest of your existing functions (loadProducts, renderProducts, etc.)
+// ... [Keep all your existing product and cart functions unchanged] ...
+
+// Initialize the app
 window.addEventListener("DOMContentLoaded", init);
 
 // Expose functions to global scope
