@@ -134,6 +134,28 @@ function updateCart() {
   cartTotalElement.textContent = `₹${total.toFixed(2)}`;
 }
 
+function processOrder(name, email, items, total) {
+  // Add order to Firestore
+  db.collection("orders").add({
+    customerName: name,
+    customerEmail: email,
+    items: items,
+    total: total,
+    status: "pending",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then(() => {
+    alert('Order placed successfully!');
+    cart = [];
+    updateCart();
+    checkoutModal.style.display = "none";
+  })
+  .catch(error => {
+    console.error("Error placing order:", error);
+    alert("Error placing order. Please try again.");
+  });
+}
+
 function setupEventListeners() {
   accountBtn.addEventListener("click", () => {
     const user = auth.currentUser;
@@ -154,9 +176,6 @@ function setupEventListeners() {
       window.location.href = "auth.html";
     });
   });
-
-  
-  
 
   cartBtn.addEventListener("click", () => {
     cartSidebar.classList.add("active");
@@ -180,21 +199,29 @@ function setupEventListeners() {
 
   checkoutForm.addEventListener("submit", function(e) {
     e.preventDefault();
-    const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
     const name = document.getElementById("userName").value.trim();
     const email = document.getElementById("userEmailInput").value.trim();
-
+    const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+    
     if (total === 0) {
       alert("Your cart is empty!");
       return;
     }
 
-    const upiUrl = `upi://pay?pa=dinzd145@oksbi&pn=${encodeURIComponent(name)}&am=${total}&cu=INR`;
-    window.location.href = upiUrl;
+    // Format items for order
+    const orderItems = cart.map(item => ({
+      productId: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: 1
+    }));
 
-    cart = [];
-    updateCart();
-    checkoutModal.style.display = "none";
+    // Process UPI payment first
+    const upiUrl = `upi://pay?pa=dinzd145@oksbi&pn=${encodeURIComponent(name)}&am=${total}&cu=INR`;
+    window.open(upiUrl, '_blank');
+    
+    // Then save the order to Firestore
+    processOrder(name, email, orderItems, total);
   });
 
   searchIcon.addEventListener("click", () => {
