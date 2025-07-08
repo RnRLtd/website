@@ -44,6 +44,7 @@ const closeProductModal = document.getElementById("closeProductModal");
 const modalProductName = document.getElementById("modalProductName");
 const modalProductDesc = document.getElementById("modalProductDesc");
 const modalProductPrice = document.getElementById("modalProductPrice");
+const upiQRCode = document.getElementById("upiQRCode");
 
 // Initialize the application
 function init() {
@@ -134,28 +135,6 @@ function updateCart() {
   cartTotalElement.textContent = `₹${total.toFixed(2)}`;
 }
 
-function processOrder(name, email, items, total) {
-  // Add order to Firestore
-  db.collection("orders").add({
-    customerName: name,
-    customerEmail: email,
-    items: items,
-    total: total,
-    status: "pending",
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  })
-  .then(() => {
-    alert('Order placed successfully!');
-    cart = [];
-    updateCart();
-    checkoutModal.style.display = "none";
-  })
-  .catch(error => {
-    console.error("Error placing order:", error);
-    alert("Error placing order. Please try again.");
-  });
-}
-
 function setupEventListeners() {
   accountBtn.addEventListener("click", () => {
     const user = auth.currentUser;
@@ -197,31 +176,48 @@ function setupEventListeners() {
     productModal.style.display = "none";
   });
 
-  checkoutForm.addEventListener("submit", function(e) {
+  checkoutForm.addEventListener("submit", async function (e) {
     e.preventDefault();
+
+    const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
     const name = document.getElementById("userName").value.trim();
     const email = document.getElementById("userEmailInput").value.trim();
-    const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
-    
+
     if (total === 0) {
       alert("Your cart is empty!");
       return;
     }
 
-    // Format items for order
-    const orderItems = cart.map(item => ({
-      productId: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: 1
-    }));
+    const orderData = {
+      customerName: name,
+      customerEmail: email,
+      items: cart.map(item => ({
+        name: item.name,
+        price: item.price,
+        quantity: 1
+      })),
+      total: total.toFixed(2),
+      status: "pending",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
-    // Process UPI payment first
-    const upiUrl = `upi://pay?pa=dinzd145@oksbi&pn=${encodeURIComponent(name)}&am=${total}&cu=INR`;
-    window.open(upiUrl, '_blank');
-    
-    // Then save the order to Firestore
-    processOrder(name, email, orderItems, total);
+    try {
+      await db.collection("orders").add(orderData);
+
+      const upiUrl = `upi://pay?pa=dinzd145@oksbi&pn=${encodeURIComponent(name)}&am=${total}&cu=INR`;
+      window.location.href = upiUrl;
+
+      QRCode.toCanvas(upiQRCode, upiUrl, { width: 180 }, function (error) {
+        if (error) console.error(error);
+      });
+
+      cart = [];
+      updateCart();
+      checkoutModal.style.display = "none";
+    } catch (error) {
+      console.error("Error placing order:", error);
+      alert("Failed to place order. Please try again.");
+    }
   });
 
   searchIcon.addEventListener("click", () => {
