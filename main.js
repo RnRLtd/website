@@ -3,7 +3,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyAwqSchQXSj-9q3PCOY0o8vrq7tKMuCYAs",
   authDomain: "r-n-r-38dc8.firebaseapp.com",
   projectId: "r-n-r-38dc8",
-  storageBucket: "r-n-r-38dc8.appspot.com", 
+  storageBucket: "r-n-r-38dc8.appspot.com",
   messagingSenderId: "425320845657",
   appId: "1:425320845657:web:8746d14fa263f924953c48",
   measurementId: "G-N42FBSYVHF"
@@ -14,166 +14,245 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-const CLOUD_NAME = 'dlpriivm2';
-const UPLOAD_PRESET = 'web_preset';
+// Global variables
+let products = [];
+let cart = [];
+let currentUser = null;
 
-document.getElementById("uploadForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const name = document.getElementById("name").value.trim();
-  const price = parseFloat(document.getElementById("price").value);
-  const description = document.getElementById("description").value.trim();
-  const category = document.getElementById("category").value;
-  const file = document.getElementById("imageInput").files[0];
-
-  if (!name || isNaN(price) || !category || !file) {
-    alert("Please fill all required fields and choose an image.");
-    return;
-  }
-
-  try {
-    const compressedBlob = await compressImage(file, 0.6);
-    const formData = new FormData();
-    formData.append("file", compressedBlob);
-    formData.append("upload_preset", UPLOAD_PRESET);
-
-    const cloudinaryRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-      method: "POST",
-      body: formData
-    });
-
-    const data = await cloudinaryRes.json();
-
-    if (data.error || !data.secure_url) {
-      return alert("Image upload failed. Please try again.");
-    }
-
-    await db.collection("shopItems").add({
-      name,
-      price,
-      description,
-      category,
-      imageUrl: data.secure_url,
-      publicId: data.public_id,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    alert("Item uploaded successfully!");
-    e.target.reset();
-    document.getElementById("preview").innerHTML = "";
-
-  } catch (err) {
-    console.error("Upload failed:", err);
-    alert("Something went wrong. Please try again.");
-  }
-});
-
-async function compressImage(file, quality = 0.7) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxWidth = 1024;
-        const scaleSize = maxWidth / img.width;
-        canvas.width = maxWidth;
-        canvas.height = img.height * scaleSize;
-
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality);
-      };
-      img.src = event.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-document.getElementById("imageInput").addEventListener("change", function () {
-  const file = this.files[0];
-  const preview = document.getElementById("preview");
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      preview.innerHTML = `<img src="${e.target.result}" width="150" style="margin-top:10px;border-radius:8px;" />`;
-    };
-    reader.readAsDataURL(file);
-  } else {
-    preview.innerHTML = "";
-  }
-});
-
-const productList = document.getElementById("productList");
+// DOM elements
+const productsContainer = document.getElementById("products");
+const cartItemsContainer = document.getElementById("cartItems");
+const cartCountElement = document.getElementById("cartCount");
+const cartTotalElement = document.getElementById("cartTotal");
 const searchInput = document.getElementById("searchInput");
+const searchIcon = document.getElementById("searchIcon");
+const categorySelect = document.getElementById("categorySelect");
+const accountBtn = document.getElementById("accountBtn");
+const accountModal = document.getElementById("accountModal");
+const userEmailElement = document.getElementById("userEmail");
+const logoutBtn = document.getElementById("logoutBtn");
+const closeAccountModal = document.getElementById("closeAccountModal");
+const cartBtn = document.getElementById("cartBtn");
+const cartSidebar = document.getElementById("cartSidebar");
+const closeCartBtn = document.getElementById("closeCart");
+const checkoutBtn = document.getElementById("checkoutBtn");
+const checkoutModal = document.getElementById("checkoutModal");
+const closeCheckoutModal = document.getElementById("closeCheckoutModal");
+const checkoutForm = document.getElementById("checkoutForm");
+const productModal = document.getElementById("productModal");
+const closeProductModal = document.getElementById("closeProductModal");
+const modalProductName = document.getElementById("modalProductName");
+const modalProductDesc = document.getElementById("modalProductDesc");
+const modalProductPrice = document.getElementById("modalProductPrice");
 
-db.collection("shopItems").orderBy("createdAt", "desc").onSnapshot(snapshot => {
-  renderProducts(snapshot.docs);
-});
+// Initialize the application
+function init() {
+  setupEventListeners();
+  checkAuthState();
+}
 
-function renderProducts(docs) {
-  productList.innerHTML = "";
-  const searchValue = searchInput.value.toLowerCase();
-
-  docs.forEach(doc => {
-    const item = doc.data();
-    const id = doc.id;
-
-    if (
-      item.name.toLowerCase().includes(searchValue) ||
-      (item.category && item.category.toLowerCase().includes(searchValue))
-    ) {
-      const div = document.createElement("div");
-      div.className = "product-card";
-      div.innerHTML = `
-        <strong>Name:</strong> <span contenteditable="true" data-field="name">${item.name}</span><br>
-        <strong>Price:</strong> ₹<span contenteditable="true" data-field="price">${item.price}</span><br>
-        <strong>Category:</strong> <span contenteditable="true" data-field="category">${item.category}</span><br>
-        <strong>Description:</strong> <span contenteditable="true" data-field="description">${item.description || ""}</span><br>
-        <img src="${item.imageUrl}" /><br>
-        <button onclick="updateItem('${id}', this)">Update</button>
-        <button onclick="deleteItem('${id}')">Delete</button>
-      `;
-      productList.appendChild(div);
+function checkAuthState() {
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      userEmailElement.textContent = user.email;
+      logoutBtn.style.display = "block";
+    } else {
+      currentUser = null;
+      userEmailElement.textContent = "Guest user";
+      logoutBtn.style.display = "none";
     }
+    loadProducts();
   });
 }
 
-async function deleteItem(id) {
-  if (confirm("Are you sure you want to delete this item?")) {
-    try {
-      await db.collection("shopItems").doc(id).delete();
-      alert("Item deleted successfully.");
-    } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Failed to delete item.");
-    }
-  }
-}
-
-async function updateItem(id, btn) {
-  const card = btn.parentElement;
-  const updatedData = {};
-  const fields = card.querySelectorAll("[contenteditable]");
-
-  fields.forEach(field => {
-    const key = field.dataset.field;
-    let value = field.innerText.trim();
-    if (key === "price") value = parseFloat(value);
-    updatedData[key] = value;
-  });
-
+async function loadProducts() {
   try {
-    await db.collection("shopItems").doc(id).update(updatedData);
-    alert("Item updated successfully.");
-  } catch (err) {
-    console.error("Update failed:", err);
-    alert("Failed to update item.");
+    const snapshot = await db.collection("shopItems").orderBy("name").get();
+    products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderProducts();
+  } catch (error) {
+    console.error("Error loading products:", error);
   }
 }
 
-searchInput.addEventListener("input", async () => {
-  const snapshot = await db.collection("shopItems").orderBy("createdAt", "desc").get();
-  renderProducts(snapshot.docs);
-});
+function renderProducts(filter = "", category = "all") {
+  productsContainer.innerHTML = "";
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(filter.toLowerCase()) &&
+    (category === "all" || p.category === category)
+  );
+
+  filtered.forEach(product => {
+    const card = document.createElement("div");
+    card.className = "product-card";
+    card.innerHTML = `
+      <img src="${product.imageUrl}" alt="${product.name}" class="product-img" />
+      <div class="product-info">
+        <h3>${product.name}</h3>
+        <p>₹${product.price}</p>
+        <button class="add-to-cart" data-id="${product.id}">Add to Cart</button>
+      </div>
+    `;
+    productsContainer.appendChild(card);
+  });
+}
+
+function addToCart(productId) {
+  const product = products.find(p => p.id === productId);
+  if (product) {
+    cart.push(product);
+    updateCart();
+  }
+}
+
+function showProductModal(name, description, price = 0) {
+  modalProductName.textContent = name;
+  modalProductDesc.textContent = description || "No description available.";
+  modalProductPrice.textContent = `₹${price}`;
+  productModal.style.display = "flex";
+}
+
+function removeFromCart(index) {
+  cart.splice(index, 1);
+  updateCart();
+}
+
+function updateCart() {
+  cartItemsContainer.innerHTML = "";
+  let total = 0;
+  cart.forEach((item, index) => {
+    total += parseFloat(item.price);
+    const div = document.createElement("div");
+    div.innerHTML = `
+      ${item.name} - ₹${item.price}
+      <button class="remove-btn" onclick="removeFromCart(${index})">Remove</button>
+    `;
+    cartItemsContainer.appendChild(div);
+  });
+  cartCountElement.textContent = cart.length;
+  cartTotalElement.textContent = `₹${total.toFixed(2)}`;
+}
+
+function setupEventListeners() {
+  accountBtn.addEventListener("click", () => {
+    const user = auth.currentUser;
+    if (!user) {
+      window.location.href = "auth.html";
+    } else {
+      window.location.href = "user.html";
+    }
+  });
+
+  closeAccountModal.addEventListener("click", () => {
+    accountModal.style.display = "none";
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    auth.signOut().then(() => {
+      accountModal.style.display = "none";
+      window.location.href = "auth.html";
+    });
+  });
+
+  cartBtn.addEventListener("click", () => {
+    cartSidebar.classList.add("active");
+  });
+
+  closeCartBtn.addEventListener("click", () => {
+    cartSidebar.classList.remove("active");
+  });
+
+  checkoutBtn.addEventListener("click", () => {
+    checkoutModal.style.display = "flex";
+  });
+
+  closeCheckoutModal.addEventListener("click", () => {
+    checkoutModal.style.display = "none";
+  });
+
+  closeProductModal.addEventListener("click", () => {
+    productModal.style.display = "none";
+  });
+
+  checkoutForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+    const name = document.getElementById("userName").value.trim();
+    const email = document.getElementById("userEmailInput").value.trim();
+
+    if (total === 0) {
+      alert("Your cart is empty!");
+      return;
+    }
+
+    const orderData = {
+      customerName: name,
+      customerEmail: email,
+      items: cart.map(item => ({
+        name: item.name,
+        price: item.price,
+        quantity: 1
+      })),
+      total: total.toFixed(2),
+      status: "pending",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+      await db.collection("orders").add(orderData);
+
+      const upiUrl = `upi://pay?pa=dinzd145@oksbi&pn=${encodeURIComponent(name)}&am=${total}&cu=INR`;
+      window.location.href = upiUrl;
+
+      cart = [];
+      updateCart();
+      checkoutModal.style.display = "none";
+    } catch (error) {
+      console.error("Error placing order:", error);
+      alert("Failed to place order. Please try again.");
+    }
+  });
+
+  searchIcon.addEventListener("click", () => {
+    const filter = searchInput.value;
+    const category = categorySelect.value;
+    renderProducts(filter, category);
+  });
+
+  categorySelect.addEventListener("change", () => {
+    const filter = searchInput.value;
+    const category = categorySelect.value;
+    renderProducts(filter, category);
+  });
+
+  window.addEventListener("click", (event) => {
+    if (event.target.classList.contains("modal-overlay")) {
+      event.target.style.display = "none";
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("add-to-cart")) {
+      const productId = e.target.getAttribute("data-id");
+      addToCart(productId);
+    }
+
+    if (e.target.closest(".product-card") && !e.target.classList.contains("add-to-cart")) {
+      const card = e.target.closest(".product-card");
+      const productId = card.querySelector(".add-to-cart").getAttribute("data-id");
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        showProductModal(product.name, product.description, product.price);
+      }
+    }
+  });
+}
+
+window.addEventListener("DOMContentLoaded", init);
+
+// Expose functions to global scope
+window.addToCart = addToCart;
+window.showProductModal = showProductModal;
+window.removeFromCart = removeFromCart;
