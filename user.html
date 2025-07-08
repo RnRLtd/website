@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>User Info</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -12,39 +13,19 @@
 <body class="bg-gray-100 flex flex-col items-center justify-start min-h-screen p-6">
   <div class="bg-white p-6 rounded shadow-md text-center w-full max-w-md">
     <h2 class="text-2xl font-semibold text-blue-600 mb-4">User Account Info</h2>
-
     <p class="text-gray-700 mb-2">Logged in as:</p>
     <p id="userEmail" class="font-medium text-lg text-black mb-4">Loading...</p>
 
     <form id="profileForm" class="space-y-3 text-left">
-      <div>
-        <label class="block text-gray-600">First Name</label>
-        <input type="text" id="firstName" class="w-full border rounded px-3 py-2" />
-      </div>
-      <div>
-        <label class="block text-gray-600">Last Name</label>
-        <input type="text" id="lastName" class="w-full border rounded px-3 py-2" />
-      </div>
-      <div>
-        <label class="block text-gray-600">Pincode</label>
-        <input type="text" id="pincode" class="w-full border rounded px-3 py-2" />
-      </div>
-      <div>
-        <label class="block text-gray-600">State</label>
-        <input type="text" id="state" class="w-full border rounded px-3 py-2" />
-      </div>
-      <div>
-        <label class="block text-gray-600">Town/Village</label>
-        <input type="text" id="town" class="w-full border rounded px-3 py-2" />
-      </div>
-      <div>
-        <label class="block text-gray-600">Landmark</label>
-        <input type="text" id="landmark" class="w-full border rounded px-3 py-2" />
-      </div>
-      <div>
-        <label class="block text-gray-600">Mark Location</label>
-        <input type="text" id="markLocation" placeholder="Latitude, Longitude" class="w-full border rounded px-3 py-2" />
-      </div>
+      <!-- Profile Fields (Unchanged) -->
+      <div><label class="block text-gray-600">First Name</label><input type="text" id="firstName" class="w-full border rounded px-3 py-2" /></div>
+      <div><label class="block text-gray-600">Last Name</label><input type="text" id="lastName" class="w-full border rounded px-3 py-2" /></div>
+      <div><label class="block text-gray-600">Phone Number</label><input type="text" id="phone" class="w-full border rounded px-3 py-2" /></div>
+      <div><label class="block text-gray-600">Pincode</label><input type="text" id="pincode" class="w-full border rounded px-3 py-2" /></div>
+      <div><label class="block text-gray-600">State</label><input type="text" id="state" class="w-full border rounded px-3 py-2" /></div>
+      <div><label class="block text-gray-600">Town/Village</label><input type="text" id="town" class="w-full border rounded px-3 py-2" /></div>
+      <div><label class="block text-gray-600">Landmark</label><input type="text" id="landmark" class="w-full border rounded px-3 py-2" /></div>
+      <div><label class="block text-gray-600">Mark Location</label><input type="text" id="markLocation" placeholder="Latitude, Longitude" class="w-full border rounded px-3 py-2" /></div>
 
       <button type="button" id="getLocationBtn" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded">Get Current Location</button>
       <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded">Save Profile</button>
@@ -62,6 +43,7 @@
   </div>
 
   <script>
+    // ✅ Firebase Configuration & Initialization
     const firebaseConfig = {
       apiKey: "AIzaSyAwqSchQXSj-9q3PCOY0o8vrq7tKMuCYAs",
       authDomain: "r-n-r-38dc8.firebaseapp.com",
@@ -82,6 +64,7 @@
     const fields = {
       firstName: document.getElementById("firstName"),
       lastName: document.getElementById("lastName"),
+      phone: document.getElementById("phone"),
       pincode: document.getElementById("pincode"),
       state: document.getElementById("state"),
       town: document.getElementById("town"),
@@ -96,7 +79,6 @@
         currentUser = user;
         userEmailEl.textContent = user.email;
 
-        // Load saved profile data
         db.collection("users").doc(user.uid).get()
           .then(doc => {
             if (doc.exists) {
@@ -105,25 +87,17 @@
                 if (data[key]) fields[key].value = data[key];
               });
             }
-          })
-          .catch(error => {
-            console.error("Error fetching user profile:", error);
           });
 
-        // Load orders
         loadUserOrders(user.email);
       } else {
         userEmailEl.textContent = "Not logged in. Redirecting...";
-        setTimeout(() => {
-          window.location.href = "auth.html";
-        }, 2000);
+        setTimeout(() => window.location.href = "auth.html", 2000);
       }
     });
 
     logoutBtn.addEventListener("click", () => {
-      auth.signOut().then(() => {
-        window.location.href = "auth.html";
-      });
+      auth.signOut().then(() => window.location.href = "auth.html");
     });
 
     getLocationBtn.addEventListener("click", () => {
@@ -136,11 +110,11 @@
           alert("Failed to get location. Make sure permissions are enabled.");
         });
       } else {
-        alert("Geolocation is not supported by your browser.");
+        alert("Geolocation not supported.");
       }
     });
 
-    document.getElementById("profileForm").addEventListener("submit", function (e) {
+    document.getElementById("profileForm").addEventListener("submit", e => {
       e.preventDefault();
       if (!currentUser) return;
 
@@ -148,7 +122,6 @@
       Object.keys(fields).forEach(key => {
         profileData[key] = fields[key].value.trim();
       });
-
       profileData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
       db.collection("users").doc(currentUser.uid).set(profileData, { merge: true })
@@ -158,6 +131,7 @@
 
     function loadUserOrders(userEmail) {
       const orderList = document.getElementById("orderList");
+      orderList.innerHTML = "Loading orders...";
 
       db.collection("orders")
         .where("customerEmail", "==", userEmail)
@@ -176,12 +150,18 @@
             const orderDiv = document.createElement("div");
             orderDiv.className = "border p-3 rounded bg-gray-50";
 
+            const itemsHTML = order.items.map(item =>
+              `<li>${item.name} - ₹${item.price}</li>`
+            ).join("");
+
             orderDiv.innerHTML = `
               <p><strong>Total:</strong> ₹${order.total}</p>
-              <p><strong>Status:</strong> <span class="capitalize font-medium text-${getStatusColor(order.status)}-600">${order.status}</span></p>
-              <ul class="list-disc ml-5 mt-2">
-                ${order.items.map(item => `<li>${item.name} - ₹${item.price}</li>`).join("")}
-              </ul>
+              <ul class="list-disc ml-5 mt-2">${itemsHTML}</ul>
+              <p class="mt-2"><strong>Status:</strong> 
+                <span class="capitalize font-medium text-${getStatusColor(order.status)}-600">
+                  ${order.status}
+                </span>
+              </p>
             `;
 
             orderList.appendChild(orderDiv);
@@ -195,8 +175,9 @@
     function getStatusColor(status) {
       switch (status) {
         case "delivered": return "green";
-        case "delayed": return "red";
-        case "ontrack": return "blue";
+        case "processing": return "blue";
+        case "pending": return "yellow";
+        case "cancelled": return "red";
         default: return "gray";
       }
     }
