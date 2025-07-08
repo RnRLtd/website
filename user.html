@@ -9,7 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-gray-100 flex flex-col items-center justify-start min-h-screen p-6">
   <div class="bg-white p-6 rounded shadow-md text-center w-full max-w-md">
     <h2 class="text-2xl font-semibold text-blue-600 mb-4">User Account Info</h2>
 
@@ -53,6 +53,12 @@
     <div class="mt-4">
       <button id="logoutBtn" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded">Logout</button>
     </div>
+  </div>
+
+  <!-- Orders Section -->
+  <div class="bg-white p-6 mt-6 rounded shadow-md text-left w-full max-w-md">
+    <h2 class="text-xl font-semibold text-blue-600 mb-4">Your Orders</h2>
+    <div id="orderList" class="space-y-4 text-sm text-gray-700">Loading orders...</div>
   </div>
 
   <script>
@@ -104,6 +110,8 @@
             console.error("Error fetching user profile:", error);
           });
 
+        // Load orders
+        loadUserOrders(user.email);
       } else {
         userEmailEl.textContent = "Not logged in. Redirecting...";
         setTimeout(() => {
@@ -147,6 +155,51 @@
         .then(() => alert("Profile saved successfully!"))
         .catch(err => alert("Failed to save profile: " + err.message));
     });
+
+    function loadUserOrders(userEmail) {
+      const orderList = document.getElementById("orderList");
+
+      db.collection("orders")
+        .where("customerEmail", "==", userEmail)
+        .orderBy("createdAt", "desc")
+        .onSnapshot(snapshot => {
+          orderList.innerHTML = "";
+
+          if (snapshot.empty) {
+            orderList.innerHTML = "<p>No orders found.</p>";
+            return;
+          }
+
+          snapshot.forEach(doc => {
+            const order = doc.data();
+
+            const orderDiv = document.createElement("div");
+            orderDiv.className = "border p-3 rounded bg-gray-50";
+
+            orderDiv.innerHTML = `
+              <p><strong>Total:</strong> ₹${order.total}</p>
+              <p><strong>Status:</strong> <span class="capitalize font-medium text-${getStatusColor(order.status)}-600">${order.status}</span></p>
+              <ul class="list-disc ml-5 mt-2">
+                ${order.items.map(item => `<li>${item.name} - ₹${item.price}</li>`).join("")}
+              </ul>
+            `;
+
+            orderList.appendChild(orderDiv);
+          });
+        }, err => {
+          console.error("Error fetching orders:", err);
+          orderList.innerHTML = "<p class='text-red-500'>Failed to load orders.</p>";
+        });
+    }
+
+    function getStatusColor(status) {
+      switch (status) {
+        case "delivered": return "green";
+        case "delayed": return "red";
+        case "ontrack": return "blue";
+        default: return "gray";
+      }
+    }
   </script>
 </body>
 </html>
