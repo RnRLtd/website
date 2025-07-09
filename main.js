@@ -204,7 +204,7 @@ function setupEventListeners() {
     try {
       await db.collection("orders").add(orderData);
 
-      const upiUrl = `upi://pay?pa=puipuiipachuau70@okhdfcbank&pn=${encodeURIComponent(name)}&am=${total}&cu=INR`;
+      const upiUrl = `upi://pay?pa=dinzd145@oksbi&pn=${encodeURIComponent(name)}&am=${total}&cu=INR`;
       window.location.href = upiUrl;
 
       cart = [];
